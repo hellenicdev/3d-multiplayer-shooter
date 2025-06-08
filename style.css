@@ -1,1 +1,32 @@
-body { margin: 0; overflow: hidden; }
+body {
+  margin: 0;
+  background: black;
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  background: #111;
+}
+
+#touchControls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#touchControls button {
+  padding: 10px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background: #444;
+  color: white;
+  cursor: pointer;
+}
+
+#touchControls button:active {
+  background: #888;
+}

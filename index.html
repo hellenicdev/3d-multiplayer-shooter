@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>3D Multiplayer Game</title>
-  <style>canvas { display: block; }</style>
+  <title>Dodge & Survive</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <script src="/socket.io/socket.io.js"></script>
-  <script type="module" src="./main.js"></script>
+  <canvas id="gameCanvas" width="480" height="640"></canvas>
+
+  <!-- Touch Controls -->
+  <div id="touchControls">
+    <button id="leftBtn">◀</button>
+    <button id="rightBtn">▶</button>
+    <button id="shootBtn">⎋</button>
+    <button id="pauseBtn">⏸</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
