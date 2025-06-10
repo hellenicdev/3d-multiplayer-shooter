@@ -1,13 +1,26 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const bgImage = new Image(); bgImage.src = 'background.jpg';
-const playerImg = new Image(); playerImg.src = 'player.png';
-const enemyImg = new Image(); enemyImg.src = 'enemy.png';
+const bgImage = new Image();
+bgImage.src = 'background.jpg';
 
-const bgMusic = new Audio('bg-music.mp3'); bgMusic.loop = true; bgMusic.volume = 0.4;
-const hitSound = new Audio('hit.wav');
-const spawnSound = new Audio('spawn.wav');
+const playerImage = new Image();
+playerImage.src = 'player.png';
+
+const enemyImage = new Image();
+enemyImage.src = 'enemy.png';
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Sounds
+const bgMusic = document.getElementById('bg-music');
+const hitSound = document.getElementById('hit-sound');
+const spawnSound = document.getElementById('spawn-sound');
 
 const player = {
   x: canvas.width / 2 - 20,
@@ -21,29 +34,22 @@ const player = {
 };
 
 let enemies = [];
-let powerUps = [];
 let score = 0;
-let gameOver = false;
-let enemySpeed = 2;
 let lives = 3;
+let gameOver = false;
 let started = false;
 let paused = false;
-let shieldActive = false;
-let shieldTimer = 0;
+
+function drawBackground() {
+  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+}
 
 function drawPlayer() {
-  ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+  ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
 }
 
 function drawEnemies() {
-  enemies.forEach(e => ctx.drawImage(enemyImg, e.x, e.y, e.width, e.height));
-}
-
-function drawPowerUps() {
-  powerUps.forEach(p => {
-    ctx.fillStyle = p.type === 'shield' ? 'cyan' : 'orange';
-    ctx.fillRect(p.x, p.y, 20, 20);
-  });
+  enemies.forEach(e => ctx.drawImage(enemyImage, e.x, e.y, e.width, e.height));
 }
 
 function drawBullets() {
@@ -51,14 +57,37 @@ function drawBullets() {
   player.bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 10));
 }
 
-function updateEnemies() {
-  enemies.forEach(e => e.y += enemySpeed);
-  enemies = enemies.filter(e => e.y < canvas.height);
+function drawUI() {
+  ctx.fillStyle = 'white';
+  ctx.font = '20px Arial';
+  ctx.fillText(`Score: ${score}`, 10, 30);
+  ctx.fillText(`Lives: ${lives}`, canvas.width - 100, 30);
 }
 
-function updatePowerUps() {
-  powerUps.forEach(p => p.y += 2);
-  powerUps = powerUps.filter(p => p.y < canvas.height);
+function drawGameOver() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'white';
+  ctx.font = '36px Arial';
+  ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2 - 20);
+  ctx.font = '24px Arial';
+  ctx.fillText(`Score: ${score}`, canvas.width / 2 - 40, canvas.height / 2 + 20);
+  ctx.fillText('Press R to Restart', canvas.width / 2 - 90, canvas.height / 2 + 60);
+}
+
+function drawStartScreen() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'white';
+  ctx.font = '28px Arial';
+  ctx.fillText('Dodge & Survive', canvas.width / 2 - 100, canvas.height / 2 - 30);
+  ctx.font = '20px Arial';
+  ctx.fillText('Press Enter or Click to Start', canvas.width / 2 - 110, canvas.height / 2 + 10);
+}
+
+function updateEnemies() {
+  enemies.forEach(e => e.y += 2);
+  enemies = enemies.filter(e => e.y < canvas.height);
 }
 
 function updateBullets() {
@@ -67,193 +96,144 @@ function updateBullets() {
 }
 
 function checkCollision(a, b) {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  return (
+    a.x < b.x + b.width &&
+    a.x + (a.width || 4) > b.x &&
+    a.y < b.y + b.height &&
+    a.y + (a.height || 10) > b.y
+  );
 }
 
 function handleCollisions() {
-  enemies.forEach((e, i) => {
-    if (checkCollision(player, e)) {
-      if (!shieldActive) {
-        lives--;
-        hitSound.play();
-        if (lives <= 0) gameOver = true;
-      }
-      enemies.splice(i, 1);
-    }
-    player.bullets.forEach((b, j) => {
-      if (checkCollision(b, e)) {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    for (let j = player.bullets.length - 1; j >= 0; j--) {
+      if (checkCollision(player.bullets[j], enemies[i])) {
         enemies.splice(i, 1);
         player.bullets.splice(j, 1);
-        score += 10;
+        score += 1;
+        hitSound.currentTime = 0;
+        hitSound.play();
+        break;
       }
-    });
-  });
-
-  powerUps.forEach((p, i) => {
-    if (checkCollision(player, p)) {
-      if (p.type === 'shield') {
-        shieldActive = true;
-        shieldTimer = 300;
-      }
-      powerUps.splice(i, 1);
     }
+  }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (checkCollision(enemies[i], player)) {
+      enemies.splice(i, 1);
+      lives -= 1;
+      hitSound.currentTime = 0;
+      hitSound.play();
+      if (lives <= 0) {
+        gameOver = true;
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+      }
+    }
+  }
+}
+
+function shoot() {
+  player.bullets.push({
+    x: player.x + player.width / 2 - 2,
+    y: player.y,
   });
 }
 
 function createEnemy() {
   const x = Math.random() * (canvas.width - 40);
   enemies.push({ x, y: -40, width: 40, height: 40 });
+  spawnSound.currentTime = 0;
   spawnSound.play();
 }
 
-function createPowerUp() {
-  const x = Math.random() * (canvas.width - 20);
-  powerUps.push({ x, y: -20, width: 20, height: 20, type: 'shield' });
-}
-
-function drawUI() {
-  ctx.fillStyle = '#fff';
-  ctx.font = '20px Arial';
-  ctx.fillText(`Score: ${score}`, 10, 30);
-  ctx.fillText(`Lives: ${lives}`, canvas.width - 90, 30);
-  if (shieldActive) {
-    ctx.fillStyle = 'cyan';
-    ctx.fillText('Shield', canvas.width / 2 - 30, 30);
-  }
-}
-
-function drawGameOver() {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#fff';
-  ctx.font = '32px Arial';
-  ctx.fillText('Game Over', canvas.width / 2 - 90, canvas.height / 2 - 20);
-  ctx.font = '20px Arial';
-  ctx.fillText(`Final Score: ${score}`, canvas.width / 2 - 70, canvas.height / 2 + 20);
-  ctx.fillText('Press R to Restart', canvas.width / 2 - 80, canvas.height / 2 + 60);
-}
-
-function drawOverlay(text) {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'white';
-  ctx.font = '24px Arial';
-  ctx.fillText(text, canvas.width / 2 - ctx.measureText(text).width / 2, canvas.height / 2);
+function resetGame() {
+  enemies = [];
+  player.bullets = [];
+  score = 0;
+  lives = 3;
+  gameOver = false;
+  paused = false;
+  player.x = canvas.width / 2 - 20;
+  bgMusic.currentTime = 0;
+  bgMusic.play();
 }
 
 function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+  drawBackground();
 
   if (!started) {
-    drawOverlay('Click or Press Enter to Start');
+    drawStartScreen();
     requestAnimationFrame(gameLoop);
     return;
   }
 
-  if (paused) {
-    drawOverlay('Paused');
-    requestAnimationFrame(gameLoop);
-    return;
-  }
-
-  if (!gameOver) {
+  if (!gameOver && !paused) {
     if (player.moveLeft && player.x > 0) player.x -= player.speed;
-    if (player.moveRight && player.x + player.width < canvas.width) player.x += player.speed;
+    if (player.moveRight && player.x + player.width < canvas.width)
+      player.x += player.speed;
 
     updateEnemies();
-    updatePowerUps();
     updateBullets();
     handleCollisions();
-
-    drawPlayer();
-    drawEnemies();
-    drawPowerUps();
-    drawBullets();
-    drawUI();
-
-    score++;
-    if (score % 500 === 0) enemySpeed += 0.5;
-    if (score % 800 === 0) createPowerUp();
-
-    if (shieldActive) {
-      shieldTimer--;
-      if (shieldTimer <= 0) shieldActive = false;
-    }
-  } else {
-    drawGameOver();
   }
+
+  drawPlayer();
+  drawEnemies();
+  drawBullets();
+  drawUI();
+
+  if (paused && !gameOver) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'white';
+    ctx.font = '36px Arial';
+    ctx.fillText('Paused', canvas.width / 2 - 60, canvas.height / 2);
+  }
+
+  if (gameOver) drawGameOver();
 
   requestAnimationFrame(gameLoop);
 }
 
-setInterval(() => {
-  if (!gameOver && started && !paused) createEnemy();
-}, 800);
-
-document.addEventListener('keydown', e => {
-  if (!started && (e.key === 'Enter' || e.key === ' ')) {
-    started = true;
-    bgMusic.play();
-  }
-  if (e.key === 'p') {
-    paused = !paused;
-    paused ? bgMusic.pause() : bgMusic.play();
-  }
+document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'a') player.moveLeft = true;
   if (e.key === 'ArrowRight' || e.key === 'd') player.moveRight = true;
-  if (e.key === ' ' && started && !paused) shoot();
-  if (e.key === 'r' && gameOver) {
-    resetGame();
+  if (e.key === ' ' && started && !gameOver) shoot();
+
+  if ((e.key === 'Enter' || e.key === ' ') && !started) {
+    started = true;
+    bgMusic.currentTime = 0;
+    bgMusic.play();
   }
+
+  if (e.key.toLowerCase() === 'p' && started && !gameOver) {
+    paused = !paused;
+    if (paused) {
+      bgMusic.pause();
+    } else {
+      bgMusic.play();
+    }
+  }
+
+  if (e.key === 'r' && gameOver) resetGame();
 });
 
-document.addEventListener('keyup', e => {
+document.addEventListener('keyup', (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'a') player.moveLeft = false;
   if (e.key === 'ArrowRight' || e.key === 'd') player.moveRight = false;
 });
 
-function shoot() {
-  player.bullets.push({ x: player.x + player.width / 2 - 2, y: player.y });
-}
-
-function resetGame() {
-  score = 0;
-  lives = 3;
-  enemySpeed = 2;
-  enemies = [];
-  powerUps = [];
-  player.bullets = [];
-  player.x = canvas.width / 2 - 20;
-  gameOver = false;
-  started = true;
-  bgMusic.play();
-}
-
-// Touch Buttons
-document.getElementById('leftBtn').ontouchstart = () => player.moveLeft = true;
-document.getElementById('leftBtn').ontouchend = () => player.moveLeft = false;
-document.getElementById('rightBtn').ontouchstart = () => player.moveRight = true;
-document.getElementById('rightBtn').ontouchend = () => player.moveRight = false;
-document.getElementById('shootBtn').ontouchstart = () => shoot();
-document.getElementById('pauseBtn').ontouchstart = () => {
-  paused = !paused;
-  paused ? bgMusic.pause() : bgMusic.play();
-};
-
 canvas.addEventListener('click', () => {
   if (!started) {
     started = true;
+    bgMusic.currentTime = 0;
     bgMusic.play();
-  } else {
-    paused = !paused;
-    paused ? bgMusic.pause() : bgMusic.play();
   }
 });
 
-window.onload = () => {
-  bgMusic.play().catch(() => {
-    document.addEventListener('click', () => bgMusic.play(), { once: true });
-  });
-  gameLoop();
-};
+setInterval(() => {
+  if (started && !gameOver && !paused) createEnemy();
+}, 1000);
+
+window.onload = gameLoop;

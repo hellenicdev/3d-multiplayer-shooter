@@ -2,20 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dodge & Survive</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <canvas id="gameCanvas" width="480" height="640"></canvas>
+  <canvas id="gameCanvas"></canvas>
 
-  <!-- Touch Controls -->
-  <div id="touchControls">
-    <button id="leftBtn">◀</button>
-    <button id="rightBtn">▶</button>
-    <button id="shootBtn">⎋</button>
-    <button id="pauseBtn">⏸</button>
-  </div>
+  <!-- Sound Effects -->
+  <audio id="bg-music" src="sounds/bg.mp3" loop preload="auto"></audio>
+  <audio id="hit-sound" src="sounds/hit.wav" preload="auto"></audio>
+  <audio id="spawn-sound" src="sounds/spawn.wav" preload="auto"></audio>
 
   <script src="script.js"></script>
 </body>
